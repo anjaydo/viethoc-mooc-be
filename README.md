@@ -13,61 +13,65 @@ HocViet allows multiple Academies and Universities to host their own isolated le
 ```mermaid
 graph TD
     %% Styling
-    classDef user fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef go fill:#add8e6,stroke:#333,stroke-width:2px;
-    classDef db fill:#ff9,stroke:#333,stroke-width:2px;
-    classDef ext fill:#f96,stroke:#333,stroke-width:2px;
+    classDef frontend fill:#d4f1f9,stroke:#333,stroke-width:2px;
+    classDef gateway fill:#ffccbc,stroke:#333,stroke-width:2px;
+    classDef service fill:#c8e6c9,stroke:#333,stroke-width:2px;
+    classDef data fill:#fff9c4,stroke:#333,stroke-width:2px;
+    classDef external fill:#e1bee7,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 
-    %% Users
-    Admin[👩‍🏫 Expert / Mentor]
-    Student[👨‍🎓 Learner (Apprentice)]
-
-    %% The Application (Modular Monolith)
-    subgraph "HocViet Core (Golang)"
-        Router[⚡ Gin Router]
-        
-        subgraph "Modules"
-            AuthMod[Auth & Tenants]
-            ContentMod[Course Management]
-            GradingMod[Assessment & Feedback]
-        end
-        
-        PaymentLogic[💰 VietQR Manual Handler]
+    %% Presentation Layer
+    subgraph "Presentation Layer (Next.js)"
+        CMS[🖥️ CMS / Educator Portal]
+        StudentApp[📱 Consumer App]
+        PartnerApp[🏢 External Partner UI]
     end
 
-    %% Frontend
-    subgraph "Presentation Layer"
-        NextCMS[CMS (Mentor Dashboard)]
-        NextLearn[Learning App]
+    %% Gateway Layer
+    Gateway{{🌐 Golang API Gateway}}
+
+    %% Core Services Layer
+    subgraph "Golang Core Services"
+        AuthServ[🔐 Auth Service]
+        TenantServ[🏢 Tenant Service]
+        ContentServ[📚 Content Service]
+        VideoServ[🎥 Video Service]
+        LTS[📈 Learning Tracking Service]
+        QuizServ[📝 Assessment Service]
     end
 
-    %% External
-    Supabase[(Supabase Postgres + RLS)]
-    Mux[Mux Video API]
+    %% Data Layer
+    subgraph "Data Infrastructure"
+        Supabase[(🐘 Supabase Postgres + RLS)]
+        Mux[▶️ Mux Video]
+    end
 
-    %% Connections
-    Admin -->|Manage Content| NextCMS
-    Student -->|Learn & Submit| NextLearn
-    
-    NextCMS -->|JSON API| Router
-    NextLearn -->|JSON API| Router
+    %% Flows
+    CMS -->|HTTPS / API Key| Gateway
+    StudentApp -->|HTTPS / JWT| Gateway
+    PartnerApp -->|HTTPS / Tenant Key| Gateway
 
-    Router --> AuthMod
-    Router --> ContentMod
-    Router --> GradingMod
-    Router --> PaymentLogic
+    Gateway -->|Route| AuthServ
+    Gateway -->|Route| TenantServ
+    Gateway -->|Route| ContentServ
+    Gateway -->|Route| LTS
+    Gateway -->|Route| QuizServ
 
-    %% Logic
-    ContentMod -->|Uploads| Mux
-    ContentMod -->|Persist| Supabase
-    GradingMod -->|Save Scores| Supabase
-    PaymentLogic -->|Verify Transfer| Supabase
+    %% Service Inter-communication
+    VideoServ -.->|Sign URL| Mux
+    ContentServ -->|Metadata| Supabase
+    LTS -->|Progress Write| Supabase
+    QuizServ -->|Grades| Supabase
+    TenantServ -->|Config| Supabase
 
-    %% Class
-    class Admin,Student user;
-    class Router,AuthMod,ContentMod,GradingMod,PaymentLogic go;
-    class Supabase db;
-    class Mux ext;
+    %% Detailed Workflows
+    QuizServ -.->|Notify Grade| LTS
+    ContentServ -.->|Request Upload| VideoServ
+
+    %% Styling Application
+    class CMS,StudentApp,PartnerApp frontend;
+    class Gateway gateway;
+    class AuthServ,TenantServ,ContentServ,VideoServ,LTS,QuizServ service;
+    class Supabase,Mux data;
 ```
 
 ## 🌟 Key Features
